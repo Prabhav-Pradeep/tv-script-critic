@@ -2,4 +2,4 @@ data/
 .venv/
 __pycache__/
 *.pyc
-.ipynb_checkpoints/
+.ipynb_checkpoints/models/
