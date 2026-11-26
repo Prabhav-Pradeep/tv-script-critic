@@ -177,6 +177,48 @@ the candidate ranked i of M is the best of a random N-subset is C(i−1, N−1) 
 expected gold score of the pick is the sum of gold scores weighted by those chances. No extra
 generation, and no sampling noise from drawing subsets.
 
+## Scoring and experiment
+
+**What the writer produced.** 3,072 candidates (12 prompts × 256). 98% use the requested
+`NAME: line` format; 12 had a "Here's the continuation"-style preamble stripped. They are
+shorter than asked: median 162 words (10th–90th percentile 64–313) against ~450 requested.
+Length is not a shortcut for the critics: within-prompt Spearman with length is −0.003 for
+gold and −0.18 to −0.01 for the proxies.
+
+**Selection rules** (`bon_experiment.py`), on the 5 proxy scores of each candidate: one proxy
+alone (curve averaged over the five), mean, mean − 1 SD, mean − 2 SD (uncertainty-weighted),
+min (worst case), and gold itself as the ceiling.
+
+**Metric: gain over the pool mean, in units of the pool's SD**, averaged over prompts. Pools
+differ in mean and spread (gold pool SD 0.74–1.01), so raw gold differences would let a few
+prompts dominate. CIs bootstrap over the 12 prompts, the unit that was actually sampled;
+rule-vs-rule differences are paired by prompt.
+
+**Exact best-of-N, tested.** `bon.py` is checked in `tests/test_bon.py` against brute force over
+every subset, plus the edge cases (N = 1 is the pool mean, N = M is the top-scored candidate,
+weights sum to 1).
+
+**Results.** See the README table. Ensembling beats a single proxy by +0.52 SD of gold at
+N = 256 (CI [+0.19, +0.86], 11/12 prompts). Every disagreement penalty is worse than the plain
+mean, at every proxy size.
+
+**Why the penalty fails here.** Hypothesis 1, that disagreement just tracks scene length, was
+tested and rejected: within-prompt Spearman of disagreement with length is −0.11 to +0.08.
+What the data shows: disagreement barely predicts which candidates the proxies overrate
+(Spearman with proxy-minus-gold: +0.17 at 250 chunks, +0.01 at 500, +0.02 at 1,200), and is
+slightly positive with gold itself at 250 and 1,200 (+0.13, +0.16), plausibly because
+distinctive scenes split opinion. A penalty on it removes good candidates and rarely removes
+overrated ones.
+
+**Scope of the claim.** Best-of-256 is mild optimization (KL ≈ 4.5 nats); gold has no peak for
+the mean or single proxy, i.e. the overoptimization regime was not reached. The finding is
+"the penalty costs when hacking is mild", not "the penalty never helps". Testing the strong
+regime needs a stronger optimizer (larger N, or RL fine-tuning of the writer).
+
+**Other limitations.** 12 prompts is the effective sample size. Gold is half TF-IDF, so
+hacking that games word choice partly fools gold too: measured gaps are a lower bound. One
+writer model (Qwen2.5-1.5B-Instruct) and one sampling temperature.
+
 ## Engineering notes
 
 - `GoldCritic` lives in `critics.py`, not in a script: pickle saves a class by module path,
