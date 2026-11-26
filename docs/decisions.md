@@ -113,6 +113,40 @@ row, which would be test leakage.
 **Known limitation.** Gold is still half TF-IDF, so it is not hack-proof; a writer that games
 word choice can partly fool gold too. This makes measured hacking a lower bound.
 
+## Proxy critics
+
+**Decision: 5 TF-IDF + ridge critics per ensemble, each trained on its own disjoint random
+subset of train chunks, with gold scores as labels** (`train_proxies.py`).
+
+**Why gold labels, not IMDb.** Gold is the truth by construction; proxies are imperfect
+copies of it, like a reward model trained on a limited number of human ratings.
+
+**Why disjoint subsets.** The first version drew overlapping random subsets; at 4,000 chunks
+(of 6,330) the five proxies correlated 0.985 with each other, i.e. clones that never
+disagree, which leaves a disagreement penalty nothing to work with. With disjoint slices of
+one permutation, no chunk is seen by two proxies. That caps the size at 6,330 / 5.
+
+**Three proxy strengths: 250, 500, 1,200 chunks.** Main setting: 500. Test-chunk
+correlations:
+
+| Subset size | Single proxy ~ gold | Proxy ~ proxy | Ensemble mean ~ gold |
+|---|---|---|---|
+| 250 | 0.62 | 0.63 | 0.73 |
+| **500** | **0.70** | **0.70** | **0.80** |
+| 1,200 | 0.80 | 0.89 | 0.84 |
+
+At 500, each proxy is a decent but imperfect copy of gold, the proxies differ from each other
+as much as from gold, and averaging already gains +0.10. At 1,200 they converge on the same
+function and averaging adds little. All of these are measured on real transcripts; on
+optimized, generated text the proxies are expected to disagree more, which is what the
+penalty exploits.
+
+**Subtlety: gold memorizes its training chunks.** Gold's correlation with the real chunk
+labels is 0.73 on train chunks (in-sample) but 0.29 on test chunks. So the labels the
+proxies learn from are partly gold's memorized noise. This is consistent with the setup,
+because the target is defined as gold's exact function, the same one that scores generated
+scenes, but it makes the proxies' job harder than copying a smooth target.
+
 ## Engineering notes
 
 - `GoldCritic` lives in `critics.py`, not in a script: pickle saves a class by module path,

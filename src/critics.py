@@ -49,6 +49,23 @@ class SemanticCritic:
         return self.model.predict(emb)
 
 
+class ProxyEnsemble:
+    """K lexical critics, each trained on its own random subset, with gold scores as labels.
+
+    score(raw_texts) -> (n_texts, K) array, one column per proxy. Selection rules (single,
+    mean, mean - lambda * std, min) are applied to these columns by the experiment.
+    """
+
+    def __init__(self, names, members, subset_size):
+        self.names = names
+        self.members = members
+        self.subset_size = subset_size
+
+    def score(self, texts):
+        masked = [mask_names(t, self.names) for t in texts]
+        return np.column_stack([m.predict(masked) for m in self.members])
+
+
 class GoldCritic:
     """Hidden 'truth' of the experiment: lexical + semantic critics, stacked.
 
