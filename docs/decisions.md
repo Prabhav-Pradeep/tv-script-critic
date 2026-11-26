@@ -147,6 +147,29 @@ proxies learn from are partly gold's memorized noise. This is consistent with th
 because the target is defined as gold's exact function, the same one that scores generated
 scenes, but it makes the proxies' job harder than copying a smooth target.
 
+## Generation
+
+**Prompts: 12 scene openings, 3 per show, ~80 words each, from test seasons**
+(`make_prompts.py`). The critics never trained on test-season text, so a prompt cannot steer
+the writer toward memorized text. Each episode's first chunk is skipped (often a "Previously
+on" recap), and each prompt comes from a different episode.
+
+**Writer: Qwen2.5-1.5B-Instruct, prompted, no fine-tuning** (`notebooks/generate_colab.ipynb`).
+Small enough for a free Colab T4, open licence (Apache-2.0). It continues each opening for
+~450 words in the same transcript format, so its output looks like what the critics learned
+from (they were trained on ~450-word chunks).
+
+**256 candidates per prompt, plain sampling (temperature 1.0, top-p 0.95).** Diversity matters:
+best-of-N only has something to choose from if candidates differ. The laptop has no GPU
+(llama3.2 3B on CPU writes ~6–10 tokens/s, so a 3,072-scene pool would take ~20 hours);
+vLLM on a T4 does it in well under an hour.
+
+**Why one pool of 256 instead of separate runs per N.** Best-of-N for any N ≤ 256 can be
+computed exactly from one pool: sort the candidates by the selection score; the chance that
+the candidate ranked i of M is the best of a random N-subset is C(i−1, N−1) / C(M, N). The
+expected gold score of the pick is the sum of gold scores weighted by those chances. No extra
+generation, and no sampling noise from drawing subsets.
+
 ## Engineering notes
 
 - `GoldCritic` lives in `critics.py`, not in a script: pickle saves a class by module path,
