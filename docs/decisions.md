@@ -161,8 +161,15 @@ from (they were trained on ~450-word chunks).
 
 **256 candidates per prompt, plain sampling (temperature 1.0, top-p 0.95).** Diversity matters:
 best-of-N only has something to choose from if candidates differ. The laptop has no GPU
-(llama3.2 3B on CPU writes ~6–10 tokens/s, so a 3,072-scene pool would take ~20 hours);
-vLLM on a T4 does it in well under an hour.
+(llama3.2 3B on CPU writes ~6–10 tokens/s, so a 3,072-scene pool would take ~20 hours), so
+generation runs on a free Colab T4.
+
+**Hugging Face `transformers`, not vLLM.** vLLM 0.34 crashed on start-up on Colab: its kernel
+warm-up imports code for an unrelated model (MiniMax-M3) that needs a `cutlass` package it
+does not install, and the T4 already lacked two of its fast paths. Plain `model.generate` with
+batches of 128 is slower but has no fragile install. The notebook was dry-run locally on CPU
+with Qwen2.5-0.5B (4 candidates, 20 tokens) before each Colab run, including resuming after a
+partial run: finished prompts are kept, a half-written prompt is regenerated.
 
 **Why one pool of 256 instead of separate runs per N.** Best-of-N for any N ≤ 256 can be
 computed exactly from one pool: sort the candidates by the selection score; the chance that
