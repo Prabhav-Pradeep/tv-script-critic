@@ -1,0 +1,9 @@
+shows:
+  csi:           {tconst: tt0247082, title: "CSI: Crime Scene Investigation"}
+  bones:         {tconst: tt0460627, title: "Bones"}
+  ncis:          {tconst: tt0364845, title: "NCIS"}
+  supernatural:  {tconst: tt0460681, title: "Supernatural"}
+  criminal_minds: {tconst: tt0452046, title: "Criminal Minds"}
+  castle:        {tconst: tt1219024, title: "Castle"}
+  mentalist:     {tconst: tt1196946, title: "The Mentalist"}
+  house:         {tconst: tt0412142, title: "House"}
